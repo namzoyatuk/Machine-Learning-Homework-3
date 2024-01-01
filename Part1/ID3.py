@@ -15,7 +15,7 @@ class TreeLeafNode:
 class DecisionTree:
     def __init__(self, dataset: list, labels, features, criterion="information gain"):
         """
-        :param dataset: array of data instances, each data instance is represented via a Python array
+        :param dataset: array of data instances, each data instance is represented via a Python array.
         :param labels: array of the labels of the data instances
         :param features: the array that stores the name of each feature dimension
         :param criterion: depending on which criterion ("information gain" or "gain ratio") the splits are to be performed
@@ -36,13 +36,30 @@ class DecisionTree:
         :param labels: array of the labels of the data instances
         :return: calculated entropy value for the given dataset
         """
-        entropy_value = 0.0
 
         """
         Entropy calculations
         """
 
+        # detect the labels and count them
+        label_count = {}
+        for label in labels:
+            if label not in label_count:
+                label_count[label] = 0
+            label_count[label] += 1
+
+        entropy_value = 0.0
+        total_instances = len(labels)
+
+        # for each label, calculate the probability and
+        # entropy of that label finally sum them up
+        for label, count in label_count.items():
+            probability = count / total_instances
+            entropy_value -= probability * np.log2(probability)
+
         return entropy_value
+
+
 
     def calculate_average_entropy__(self, dataset, labels, attribute):
         """
@@ -55,6 +72,28 @@ class DecisionTree:
         """
             Average entropy calculations
         """
+        total_instances = len(dataset)
+        attribute_values = {}
+
+        attribute_index = self.features.index(attribute)
+
+
+        # create partitions on the dataset based on the attribute
+        for i, data in enumerate(dataset):
+            the_attribute_value = data[attribute_index]
+            if the_attribute_value not in attribute_values:
+                attribute_values[the_attribute_value] = {'data': [], 'labels': []}
+            attribute_values[the_attribute_value]['data'].append(data)
+            attribute_values[the_attribute_value]['labels'].append(labels[i])
+
+        # calculate the weighted average of the partitions
+        for value, partition in attribute_values.items():
+            partition_size = len(partition['data'])
+            weight = partition_size / total_instances
+            entropy_of_partition = self.calculate_entropy__(partition['data'], partition['labels'])
+            average_entropy += weight * entropy_of_partition
+
+
         return average_entropy
 
     def calculate_information_gain__(self, dataset, labels, attribute):
