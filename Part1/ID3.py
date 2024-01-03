@@ -167,6 +167,57 @@ class DecisionTree:
             Your implementation
         """
 
+        # stopping condition 1: where tree is pure
+        if len((set(labels))) == 1:
+            return TreeLeafNode(dataset, labels[0])
+
+        # stopping condition 2: when there are no more attributes
+        # return a leaf node with most common label
+        if len(used_attributes) == len(self.features):
+            most_common_label = max(set(labels), key=labels.count)
+            return TreeLeafNode(dataset, most_common_label)
+
+        # initialize variables
+        best_score = -1
+        best_attribute = None
+
+
+        # for each unused attribute we calculate the score
+        # depends on the criterion
+        for attribute in self.features:
+            if attribute not in used_attributes:
+                if self.criterion == "information gain":
+                    score = self.calculate_information_gain__(dataset, labels, attribute)
+                else:
+                    score = self.calculate_gain_ratio__(dataset, labels, attribute)
+
+                # if score of the attribute is
+                # better than others, set it to best
+                if score > best_score:
+                    best_score = score
+                    best_attribute = attribute
+
+
+        # stopping condition 3:
+        if best_attribute is None:
+            most_common_label = max(set(labels), key=labels.count)
+            return TreeLeafNode(dataset, most_common_label)
+
+
+        # split the dataset and use recursion
+        node = TreeNode(best_attribute)
+        used_attributes.append(best_attribute)
+
+        attribute_values = set([data[self.features.index(best_attribute)] for data in dataset])
+
+        for value in attribute_values:
+            subset_data = [data for data in dataset if data[self.features.index(best_attribute)] == value]
+            subset_labels = [labels[i] for i in range(len(labels)) if dataset[i][self.features.index(best_attribute)] == value]
+            node.subtrees[value] = self.ID3__(subset_data, subset_labels, used_attributes.copy())
+
+        return node
+
+
     def predict(self, x):
         """
         :param x: a data instance, 1 dimensional Python array 
@@ -178,7 +229,33 @@ class DecisionTree:
         """
             Your implementation
         """
+        current_node = self.root
 
+
+        print(f"Predicting: {x}")
+
+        while isinstance(current_node, TreeNode):
+            attribute = current_node.attribute
+            attribute_value = x[self.features.index(attribute)]
+            print(f"{attribute}, {attribute_value}")
+
+            #infinite loop?
+            if attribute_value in current_node.subtrees:
+                current_node = current_node.subtrees[attribute_value]
+            else:
+                break
+
+        # At this point, current_node should be a TreeLeafNode
+        if isinstance(current_node, TreeLeafNode):
+            # If the leaf has multiple labels, return the majority label
+            if isinstance(current_node.labels, list):
+                predicted_label = max(set(current_node.labels), key=current_node.labels.count)
+            else:
+                predicted_label = current_node.labels
+        else:
+            predicted_label = None
+
+        print("Predicted:", predicted_label)
         return predicted_label
 
     def train(self):
